@@ -4,44 +4,89 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>What2Choose</title>
+  <script>
+    // Ставим тему до отрисовки страницы, чтобы не мигало белым
+    (function () {
+      let theme = null;
+      try { theme = localStorage.getItem("theme"); } catch (e) {}
+      if (!theme) {
+        theme = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+          ? "dark" : "light";
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 70px; background: #fef6e4; }
+    /* Цвета светлой и тёмной темы */
+    :root {
+      --bg: #fef6e4;
+      --text: #222;
+      --muted: #999;
+      --card: #fff;
+      --card-text: #333;
+      --accent: #f582ae;
+      --accent-hover: #e0679a;
+      --soft: #fde2ec;
+      --border: #f582ae;
+      color-scheme: light;
+    }
+    [data-theme="dark"] {
+      --bg: #16161a;
+      --text: #fffffe;
+      --muted: #94a1b2;
+      --card: #242629;
+      --card-text: #fffffe;
+      --accent: #f582ae;
+      --accent-hover: #e0679a;
+      --soft: #3a2a33;
+      --border: #f582ae;
+      color-scheme: dark;
+    }
+
+    body { font-family: sans-serif; text-align: center; margin-top: 70px;
+           background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
     h1 { font-size: 2em; }
-    textarea { width: 300px; max-width: 90%; height: 140px; font-size: 1em; padding: 8px; }
+    textarea { width: 300px; max-width: 90%; height: 140px; font-size: 1em; padding: 8px;
+               background: var(--card); color: var(--card-text);
+               border: 2px solid var(--border); border-radius: 8px; }
     button { font-size: 1.2em; padding: 12px 28px; margin: 12px; border: none;
-             border-radius: 10px; background: #f582ae; color: white; cursor: pointer; }
-    button:hover { background: #e0679a; }
+             border-radius: 10px; background: var(--accent); color: white; cursor: pointer; }
+    button:hover { background: var(--accent-hover); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
 
     /* Результат и анимация */
     #result { font-size: 2em; margin-top: 24px; min-height: 60px; transition: color 0.2s; }
-    #result.spinning { color: #999; }
-    #result.done { color: #222; animation: pop 0.5s ease; }
+    #result.spinning { color: var(--muted); }
+    #result.done { color: var(--text); animation: pop 0.5s ease; }
     @keyframes pop {
       0%   { transform: scale(0.6); }
       60%  { transform: scale(1.25); }
       100% { transform: scale(1); }
     }
 
-    /* Переключатель языка */
-    #lang-switch { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; }
-    #lang-switch button { font-size: 0.95em; padding: 6px 12px; margin: 0;
-                          background: #fff; color: #333; border: 2px solid #f582ae; }
-    #lang-switch button.active { background: #f582ae; color: white; }
+    /* Верхний правый угол: язык и тема */
+    #top-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; }
+    #top-controls button { font-size: 0.95em; padding: 6px 12px; margin: 0;
+                           background: var(--card); color: var(--card-text);
+                           border: 2px solid var(--border); }
+    #top-controls button.active { background: var(--accent); color: white; }
+    #top-controls button:disabled { opacity: 0.6; }
 
     /* Пресеты */
     #presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
                max-width: 520px; margin: 0 auto 16px; padding: 0 12px; }
     #presets button { font-size: 0.95em; padding: 8px 14px; margin: 0;
-                      background: #fff; color: #333; border: 2px solid #f582ae; }
-    #presets button:hover { background: #fde2ec; }
-    #presets button.active { background: #f582ae; color: white; }
+                      background: var(--card); color: var(--card-text);
+                      border: 2px solid var(--border); }
+    #presets button:hover { background: var(--soft); }
+    #presets button.active { background: var(--accent); color: white; }
   </style>
 </head>
 <body>
-  <div id="lang-switch">
+  <div id="top-controls">
     <button id="btn-ru" onclick="setLang('ru')">RU</button>
     <button id="btn-en" onclick="setLang('en')">EN</button>
+    <button id="btn-theme" onclick="toggleTheme()" aria-label="Toggle theme"></button>
   </div>
 
   <h1 id="title"></h1>
@@ -108,6 +153,22 @@
     let currentPreset = "food";
     let spinning = false;
 
+    /* ---------- Тема ---------- */
+    function updateThemeButton() {
+      const theme = document.documentElement.getAttribute("data-theme");
+      // В тёмной теме показываем солнце (переключить на светлую), в светлой луну
+      document.getElementById("btn-theme").textContent = theme === "dark" ? "☀️" : "🌙";
+    }
+
+    function toggleTheme() {
+      const current = document.documentElement.getAttribute("data-theme");
+      const next = current === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (e) {}
+      updateThemeButton();
+    }
+
+    /* ---------- Пресеты и язык ---------- */
     function presetText(key, lang) {
       return presets[key].items[lang].join("\n");
     }
@@ -160,6 +221,7 @@
       renderPresets();
     }
 
+    /* ---------- Выбор с анимацией ---------- */
     function randomItem(list, exclude) {
       let item;
       do {
@@ -224,8 +286,9 @@
       tick();
     }
 
-    // Старт: русский язык и пресет «Что заказать»
+    // Старт: русский язык, пресет «Что заказать», сохранённая или системная тема
     document.getElementById("options").value = presetText(currentPreset, "ru");
+    updateThemeButton();
     setLang("ru");
   </script>
 </body>
