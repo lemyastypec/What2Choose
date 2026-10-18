@@ -3,21 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Что выбрать?</title>
+  <title>What2Choose</title>
   <style>
-    body { font-family: sans-serif; text-align: center; margin-top: 60px; background: #fef6e4; }
+    body { font-family: sans-serif; text-align: center; margin-top: 70px; background: #fef6e4; }
     h1 { font-size: 2em; }
-    textarea { width: 300px; height: 140px; font-size: 1em; padding: 8px; }
+    textarea { width: 300px; max-width: 90%; height: 140px; font-size: 1em; padding: 8px; }
     button { font-size: 1.2em; padding: 12px 28px; margin: 12px; border: none;
              border-radius: 10px; background: #f582ae; color: white; cursor: pointer; }
     button:hover { background: #e0679a; }
     #result { font-size: 2em; margin-top: 24px; min-height: 50px; }
 
-    /* Переключатель языка в правом верхнем углу */
+    /* Переключатель языка */
     #lang-switch { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; }
     #lang-switch button { font-size: 0.95em; padding: 6px 12px; margin: 0;
                           background: #fff; color: #333; border: 2px solid #f582ae; }
     #lang-switch button.active { background: #f582ae; color: white; }
+
+    /* Пресеты */
+    #presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+               max-width: 520px; margin: 0 auto 16px; padding: 0 12px; }
+    #presets button { font-size: 0.95em; padding: 8px 14px; margin: 0;
+                      background: #fff; color: #333; border: 2px solid #f582ae; }
+    #presets button:hover { background: #fde2ec; }
+    #presets button.active { background: #f582ae; color: white; }
   </style>
 </head>
 <body>
@@ -27,6 +35,7 @@
   </div>
 
   <h1 id="title"></h1>
+  <div id="presets"></div>
   <p id="hint"></p>
   <textarea id="options"></textarea>
   <br>
@@ -37,34 +46,91 @@
     const texts = {
       ru: {
         title: "🎲 Что выбрать?",
-        hint: "Впишите варианты, по одному на строку:",
+        hint: "Выберите набор или впишите свои варианты, по одному на строку:",
         button: "Выбрать!",
-        empty: "Добавьте хоть один вариант 🙂",
-        defaults: "Пицца\nСуши\nБургер\nСалат\nСуп"
+        empty: "Добавьте хоть один вариант 🙂"
       },
       en: {
         title: "🎲 What to choose?",
-        hint: "Enter your options, one per line:",
+        hint: "Pick a preset or enter your own options, one per line:",
         button: "Pick!",
-        empty: "Add at least one option 🙂",
-        defaults: "Pizza\nSushi\nBurger\nSalad\nSoup"
+        empty: "Add at least one option 🙂"
+      }
+    };
+
+    // Пресеты. Чтобы добавить свой, скопируйте любой блок и поменяйте названия и варианты.
+    const presets = {
+      food: {
+        label: { ru: "🍕 Что заказать", en: "🍕 What to order" },
+        items: {
+          ru: ["Пицца", "Суши", "Бургер", "Салат", "Суп"],
+          en: ["Pizza", "Sushi", "Burger", "Salad", "Soup"]
+        }
+      },
+      movie: {
+        label: { ru: "🎬 Жанр фильмов", en: "🎬 Movie genre" },
+        items: {
+          ru: ["Комедия", "Боевик", "Ужасы", "Фантастика", "Драма", "Триллер", "Мелодрама", "Мультфильм"],
+          en: ["Comedy", "Action", "Horror", "Sci-Fi", "Drama", "Thriller", "Romance", "Animation"]
+        }
+      },
+      travel: {
+        label: { ru: "✈️ Куда съездить", en: "✈️ Where to travel" },
+        items: {
+          ru: ["Стамбул", "Тбилиси", "Рим", "Токио", "Бали", "Дубай", "Париж"],
+          en: ["Istanbul", "Tbilisi", "Rome", "Tokyo", "Bali", "Dubai", "Paris"]
+        }
+      },
+      activity: {
+        label: { ru: "🎳 Чем заняться", en: "🎳 What to do" },
+        items: {
+          ru: ["Прогулка", "Кино", "Настольные игры", "Боулинг", "Готовить дома", "Спортзал"],
+          en: ["Go for a walk", "Cinema", "Board games", "Bowling", "Cook at home", "Gym"]
+        }
+      },
+      custom: {
+        label: { ru: "✏️ Свой список", en: "✏️ My own list" },
+        items: { ru: [], en: [] }
       }
     };
 
     let currentLang = "ru";
+    let currentPreset = "food";
+
+    function presetText(key, lang) {
+      return presets[key].items[lang].join("\n");
+    }
+
+    function renderPresets() {
+      const box = document.getElementById("presets");
+      box.innerHTML = "";
+      for (const key in presets) {
+        const b = document.createElement("button");
+        b.textContent = presets[key].label[currentLang];
+        b.classList.toggle("active", key === currentPreset);
+        b.onclick = () => selectPreset(key);
+        box.appendChild(b);
+      }
+    }
+
+    function selectPreset(key) {
+      currentPreset = key;
+      document.getElementById("options").value = presetText(key, currentLang);
+      document.getElementById("result").textContent = "";
+      renderPresets();
+    }
 
     function setLang(lang) {
       const box = document.getElementById("options");
-      const oldDefaults = texts[currentLang].defaults;
-
-      // Если список не менялся вручную, подставляем стандартный список нового языка
-      if (box.value.trim() === "" || box.value.trim() === oldDefaults) {
-        box.value = texts[lang].defaults;
-      }
+      const untouched = box.value.trim() === presetText(currentPreset, currentLang).trim();
 
       currentLang = lang;
+      // Если список не правили вручную, показываем тот же пресет на новом языке
+      if (untouched) {
+        box.value = presetText(currentPreset, lang);
+      }
+
       document.documentElement.lang = lang;
-      document.title = texts[lang].title.replace("🎲 ", "");
       document.getElementById("title").textContent = texts[lang].title;
       document.getElementById("hint").textContent = texts[lang].hint;
       document.getElementById("pick-btn").textContent = texts[lang].button;
@@ -72,6 +138,7 @@
 
       document.getElementById("btn-ru").classList.toggle("active", lang === "ru");
       document.getElementById("btn-en").classList.toggle("active", lang === "en");
+      renderPresets();
     }
 
     function pick() {
@@ -87,7 +154,8 @@
       result.textContent = "🎉 " + list[Math.floor(Math.random() * list.length)];
     }
 
-    // Старт на русском
+    // Старт: русский язык и пресет «Что заказать»
+    document.getElementById("options").value = presetText(currentPreset, "ru");
     setLang("ru");
   </script>
 </body>
