@@ -11,7 +11,17 @@
     button { font-size: 1.2em; padding: 12px 28px; margin: 12px; border: none;
              border-radius: 10px; background: #f582ae; color: white; cursor: pointer; }
     button:hover { background: #e0679a; }
-    #result { font-size: 2em; margin-top: 24px; min-height: 50px; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* Результат и анимация */
+    #result { font-size: 2em; margin-top: 24px; min-height: 60px; transition: color 0.2s; }
+    #result.spinning { color: #999; }
+    #result.done { color: #222; animation: pop 0.5s ease; }
+    @keyframes pop {
+      0%   { transform: scale(0.6); }
+      60%  { transform: scale(1.25); }
+      100% { transform: scale(1); }
+    }
 
     /* Переключатель языка */
     #lang-switch { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; }
@@ -63,8 +73,8 @@
       food: {
         label: { ru: "🍕 Что заказать", en: "🍕 What to order" },
         items: {
-          ru: ["Пицца", "Суши", "Бургер", "Салат", "Суп", "Паста", "Рамен"],
-          en: ["Pizza", "Sushi", "Burger", "Salad", "Soup", "Pasta", "Ramen"]
+          ru: ["Пицца", "Суши", "Бургер", "Салат", "Суп"],
+          en: ["Pizza", "Sushi", "Burger", "Salad", "Soup"]
         }
       },
       movie: {
@@ -84,8 +94,8 @@
       activity: {
         label: { ru: "🎳 Чем заняться", en: "🎳 What to do" },
         items: {
-          ru: ["Прогулка", "Кино", "Настольные игры", "Боулинг", "Готовить дома", "Спортзал", "Учеба"],
-          en: ["Go for a walk", "Cinema", "Board games", "Bowling", "Cook at home", "Gym", "Study"]
+          ru: ["Прогулка", "Кино", "Настольные игры", "Боулинг", "Готовить дома", "Спортзал"],
+          en: ["Go for a walk", "Cinema", "Board games", "Bowling", "Cook at home", "Gym"]
         }
       },
       custom: {
@@ -96,6 +106,7 @@
 
     let currentLang = "ru";
     let currentPreset = "food";
+    let spinning = false;
 
     function presetText(key, lang) {
       return presets[key].items[lang].join("\n");
@@ -114,13 +125,21 @@
     }
 
     function selectPreset(key) {
+      if (spinning) return;
       currentPreset = key;
       document.getElementById("options").value = presetText(key, currentLang);
-      document.getElementById("result").textContent = "";
+      clearResult();
       renderPresets();
     }
 
+    function clearResult() {
+      const result = document.getElementById("result");
+      result.textContent = "";
+      result.className = "";
+    }
+
     function setLang(lang) {
+      if (spinning) return;
       const box = document.getElementById("options");
       const untouched = box.value.trim() === presetText(currentPreset, currentLang).trim();
 
@@ -134,24 +153,75 @@
       document.getElementById("title").textContent = texts[lang].title;
       document.getElementById("hint").textContent = texts[lang].hint;
       document.getElementById("pick-btn").textContent = texts[lang].button;
-      document.getElementById("result").textContent = "";
+      clearResult();
 
       document.getElementById("btn-ru").classList.toggle("active", lang === "ru");
       document.getElementById("btn-en").classList.toggle("active", lang === "en");
       renderPresets();
     }
 
+    function randomItem(list, exclude) {
+      let item;
+      do {
+        item = list[Math.floor(Math.random() * list.length)];
+      } while (list.length > 1 && item === exclude);
+      return item;
+    }
+
     function pick() {
+      if (spinning) return;
+
       const list = document.getElementById("options").value
         .split("\n")
         .map(s => s.trim())
         .filter(s => s !== "");
       const result = document.getElementById("result");
+      const btn = document.getElementById("pick-btn");
+
       if (list.length === 0) {
+        result.className = "";
         result.textContent = texts[currentLang].empty;
         return;
       }
-      result.textContent = "🎉 " + list[Math.floor(Math.random() * list.length)];
+
+      // Итоговый результат выбираем сразу, а анимация только красиво его показывает
+      const finalChoice = list[Math.floor(Math.random() * list.length)];
+
+      // Если вариант один, крутить нечего
+      if (list.length === 1) {
+        result.className = "done";
+        result.textContent = "🎉 " + finalChoice;
+        return;
+      }
+
+      spinning = true;
+      btn.disabled = true;
+      result.className = "spinning";
+
+      const totalSteps = 16;   // сколько раз мелькнёт текст
+      let step = 0;
+      let delay = 60;          // стартовая пауза в миллисекундах
+      let last = "";
+
+      function tick() {
+        step++;
+        if (step >= totalSteps) {
+          result.className = "";
+          void result.offsetWidth;   // перезапуск CSS-анимации
+          result.className = "done";
+          result.textContent = "🎉 " + finalChoice;
+          spinning = false;
+          btn.disabled = false;
+          return;
+        }
+        // Предпоследний показ не должен совпадать с итогом, так эффектнее
+        const exclude = (step === totalSteps - 1) ? finalChoice : last;
+        last = randomItem(list, exclude);
+        result.textContent = last;
+        delay *= 1.12;             // с каждым шагом замедляемся
+        setTimeout(tick, delay);
+      }
+      tick();
     }
 
     // Старт: русский язык и пресет «Что заказать»
