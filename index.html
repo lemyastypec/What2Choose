@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Что выбрать?</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin-top: 60px; background: #fef6e4; }
+    h1 { font-size: 2em; }
+    textarea { width: 300px; height: 140px; font-size: 1em; padding: 8px; }
+    button { font-size: 1.2em; padding: 12px 28px; margin: 12px; border: none;
+             border-radius: 10px; background: #f582ae; color: white; cursor: pointer; }
+    button:hover { background: #e0679a; }
+    #result { font-size: 2em; margin-top: 24px; min-height: 50px; }
+
+    /* Переключатель языка в правом верхнем углу */
+    #lang-switch { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; }
+    #lang-switch button { font-size: 0.95em; padding: 6px 12px; margin: 0;
+                          background: #fff; color: #333; border: 2px solid #f582ae; }
+    #lang-switch button.active { background: #f582ae; color: white; }
+  </style>
+</head>
+<body>
+  <div id="lang-switch">
+    <button id="btn-ru" onclick="setLang('ru')">RU</button>
+    <button id="btn-en" onclick="setLang('en')">EN</button>
+  </div>
+
+  <h1 id="title"></h1>
+  <p id="hint"></p>
+  <textarea id="options"></textarea>
+  <br>
+  <button id="pick-btn" onclick="pick()"></button>
+  <div id="result"></div>
+
+  <script>
+    const texts = {
+      ru: {
+        title: "🎲 Что выбрать?",
+        hint: "Впишите варианты, по одному на строку:",
+        button: "Выбрать!",
+        empty: "Добавьте хоть один вариант 🙂",
+        defaults: "Пицца\nСуши\nБургер\nСалат\nСуп"
+      },
+      en: {
+        title: "🎲 What to choose?",
+        hint: "Enter your options, one per line:",
+        button: "Pick!",
+        empty: "Add at least one option 🙂",
+        defaults: "Pizza\nSushi\nBurger\nSalad\nSoup"
+      }
+    };
+
+    let currentLang = "ru";
+
+    function setLang(lang) {
+      const box = document.getElementById("options");
+      const oldDefaults = texts[currentLang].defaults;
+
+      // Если список не менялся вручную, подставляем стандартный список нового языка
+      if (box.value.trim() === "" || box.value.trim() === oldDefaults) {
+        box.value = texts[lang].defaults;
+      }
+
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      document.title = texts[lang].title.replace("🎲 ", "");
+      document.getElementById("title").textContent = texts[lang].title;
+      document.getElementById("hint").textContent = texts[lang].hint;
+      document.getElementById("pick-btn").textContent = texts[lang].button;
+      document.getElementById("result").textContent = "";
+
+      document.getElementById("btn-ru").classList.toggle("active", lang === "ru");
+      document.getElementById("btn-en").classList.toggle("active", lang === "en");
+    }
+
+    function pick() {
+      const list = document.getElementById("options").value
+        .split("\n")
+        .map(s => s.trim())
+        .filter(s => s !== "");
+      const result = document.getElementById("result");
+      if (list.length === 0) {
+        result.textContent = texts[currentLang].empty;
+        return;
+      }
+      result.textContent = "🎉 " + list[Math.floor(Math.random() * list.length)];
+    }
+
+    // Старт на русском
+    setLang("ru");
+  </script>
+</body>
+</html>
