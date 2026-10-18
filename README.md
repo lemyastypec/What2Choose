@@ -1,1 +1,1 @@
-https://lemyastypec.github.io/What2Choose
+https://lemyastypec.github.io/What2Choose/
