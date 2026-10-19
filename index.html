@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>What2Choose</title>
   <script>
-    // Ставим тему до отрисовки страницы, чтобы не мигало белым
     (function () {
       let theme = null;
       try { theme = localStorage.getItem("theme"); } catch (e) {}
@@ -18,75 +17,67 @@
   </script>
   <style>
     :root {
-      --bg: #fef6e4;
-      --text: #222;
-      --muted: #999;
-      --card: #fff;
-      --card-text: #333;
-      --accent: #f582ae;
-      --accent-hover: #e0679a;
-      --soft: #fde2ec;
-      --border: #f582ae;
+      --bg: #fef6e4; --text: #222; --muted: #999; --card: #fff; --card-text: #333;
+      --accent: #f582ae; --accent-hover: #e0679a; --soft: #fde2ec; --border: #f582ae;
       color-scheme: light;
     }
     [data-theme="dark"] {
-      --bg: #16161a;
-      --text: #fffffe;
-      --muted: #94a1b2;
-      --card: #242629;
-      --card-text: #fffffe;
-      --accent: #f582ae;
-      --accent-hover: #e0679a;
-      --soft: #3a2a33;
-      --border: #f582ae;
+      --bg: #16161a; --text: #fffffe; --muted: #94a1b2; --card: #242629; --card-text: #fffffe;
+      --accent: #f582ae; --accent-hover: #e0679a; --soft: #3a2a33; --border: #f582ae;
       color-scheme: dark;
     }
 
     body { font-family: sans-serif; text-align: center; margin-top: 70px;
            background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; }
     h1 { font-size: 2em; }
-    textarea { width: 300px; max-width: 90%; height: 140px; font-size: 1em; padding: 8px;
+    textarea, input[type="text"] { width: 300px; max-width: 90%; font-size: 1em; padding: 8px;
                background: var(--card); color: var(--card-text);
-               border: 2px solid var(--border); border-radius: 8px; }
+               border: 2px solid var(--border); border-radius: 8px; box-sizing: border-box; }
+    textarea { height: 140px; }
     button { font-size: 1.2em; padding: 12px 28px; margin: 12px; border: none;
              border-radius: 10px; background: var(--accent); color: white; cursor: pointer; }
     button:hover { background: var(--accent-hover); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    /* Результат и анимация */
     #result { font-size: 2em; margin-top: 24px; min-height: 60px; transition: color 0.2s; }
     #result.spinning { color: var(--muted); }
     #result.done { color: var(--text); animation: pop 0.5s ease; }
-    @keyframes pop {
-      0%   { transform: scale(0.6); }
-      60%  { transform: scale(1.25); }
-      100% { transform: scale(1); }
-    }
+    @keyframes pop { 0% { transform: scale(0.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
 
-    /* Конфетти: слой поверх страницы, клики пропускает */
     #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
                 pointer-events: none; z-index: 50; }
 
-    /* Верхний правый угол: язык и тема */
     #top-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; z-index: 60; }
     #top-controls button { font-size: 0.95em; padding: 6px 12px; margin: 0;
-                           background: var(--card); color: var(--card-text);
-                           border: 2px solid var(--border); }
+                           background: var(--card); color: var(--card-text); border: 2px solid var(--border); }
     #top-controls button.active { background: var(--accent); color: white; }
-    #top-controls button:disabled { opacity: 0.6; }
 
-    /* Пресеты */
     #presets { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
                max-width: 520px; margin: 0 auto 16px; padding: 0 12px; }
     #presets button { font-size: 0.95em; padding: 8px 14px; margin: 0;
-                      background: var(--card); color: var(--card-text);
-                      border: 2px solid var(--border); }
+                      background: var(--card); color: var(--card-text); border: 2px solid var(--border); }
     #presets button:hover { background: var(--soft); }
     #presets button.active { background: var(--accent); color: white; }
+    #presets button.add { border-style: dashed; }
 
-    /* Подпись в правом нижнем углу */
-    #credit { position: fixed; bottom: 12px; right: 16px; font-size: 0.85em;
-              color: var(--muted); z-index: 60; }
+    /* Кнопка «Редактировать» */
+    #preset-actions { min-height: 8px; }
+    .small-btn { font-size: 0.9em; padding: 6px 14px; margin: 0 0 8px; background: var(--card);
+                 color: var(--card-text); border: 2px solid var(--border); }
+    .small-btn:hover { background: var(--soft); }
+
+    /* Редактор набора */
+    #editor { max-width: 360px; margin: 0 auto 20px; padding: 16px; background: var(--soft);
+              border-radius: 14px; }
+    #editor[hidden] { display: none; }
+    #editor h3 { margin: 0 0 10px; }
+    #editor input, #editor textarea { display: block; margin: 8px auto; }
+    #editor button { font-size: 1em; padding: 8px 16px; margin: 6px 4px 0; }
+    #editor button.ghost { background: var(--card); color: var(--card-text); border: 2px solid var(--border); }
+    #editor button.danger { background: #d64545; }
+    #ed-error { color: #d64545; min-height: 1.2em; font-size: 0.9em; }
+
+    #credit { position: fixed; bottom: 12px; right: 16px; font-size: 0.85em; color: var(--muted); z-index: 60; }
     #credit a { color: inherit; text-decoration: none; font-weight: bold; }
     #credit a:hover { color: var(--accent); }
   </style>
@@ -102,6 +93,18 @@
 
   <h1 id="title"></h1>
   <div id="presets"></div>
+  <div id="preset-actions"></div>
+
+  <div id="editor" hidden>
+    <h3 id="ed-title"></h3>
+    <input type="text" id="ed-name" maxlength="30">
+    <textarea id="ed-items"></textarea>
+    <div id="ed-error"></div>
+    <button id="ed-save" onclick="saveEditor()"></button>
+    <button id="ed-cancel" class="ghost" onclick="closeEditor()"></button>
+    <button id="ed-delete" class="danger" onclick="deleteCustom()"></button>
+  </div>
+
   <p id="hint"></p>
   <textarea id="options"></textarea>
   <br>
@@ -116,17 +119,41 @@
         title: "🎲 Что выбрать?",
         hint: "Выберите набор или впишите свои варианты, по одному на строку:",
         button: "Выбрать!",
-        empty: "Добавьте хоть один вариант 🙂"
+        empty: "Добавьте хоть один вариант 🙂",
+        newPreset: "➕ Новый набор",
+        edit: "✏️ Редактировать набор",
+        edTitleNew: "Новый набор",
+        edTitleEdit: "Редактирование набора",
+        edName: "Название набора",
+        edItems: "Варианты, по одному на строку",
+        save: "Сохранить",
+        cancel: "Отмена",
+        del: "Удалить",
+        needName: "Введите название",
+        needItems: "Добавьте хотя бы один вариант",
+        confirmDel: "Удалить этот набор?"
       },
       en: {
         title: "🎲 What to choose?",
         hint: "Pick a preset or enter your own options, one per line:",
         button: "Pick!",
-        empty: "Add at least one option 🙂"
+        empty: "Add at least one option 🙂",
+        newPreset: "➕ New preset",
+        edit: "✏️ Edit preset",
+        edTitleNew: "New preset",
+        edTitleEdit: "Edit preset",
+        edName: "Preset name",
+        edItems: "Options, one per line",
+        save: "Save",
+        cancel: "Cancel",
+        del: "Delete",
+        needName: "Enter a name",
+        needItems: "Add at least one option",
+        confirmDel: "Delete this preset?"
       }
     };
 
-    // Пресеты. Чтобы добавить свой, скопируйте любой блок и поменяйте названия и варианты.
+    // Встроенные пресеты
     const presets = {
       food: {
         label: { ru: "🍕 Что заказать", en: "🍕 What to order" },
@@ -163,8 +190,32 @@
     };
 
     let currentLang = "ru";
-    let currentPreset = "food";
+    let currentPreset = "food";   // ключ встроенного набора или "c:ID" для своего
     let spinning = false;
+    let editingId = null;         // null = создаём новый набор
+
+    /* ---------- Свои наборы (localStorage) ---------- */
+    let customPresets = [];
+
+    function loadCustom() {
+      try {
+        const data = JSON.parse(localStorage.getItem("customPresets") || "[]");
+        if (Array.isArray(data)) customPresets = data;
+      } catch (e) { customPresets = []; }
+    }
+
+    function saveCustom() {
+      try { localStorage.setItem("customPresets", JSON.stringify(customPresets)); } catch (e) {}
+    }
+
+    function findCustom(key) {
+      if (!key.startsWith("c:")) return null;
+      return customPresets.find(p => p.id === key.slice(2)) || null;
+    }
+
+    function parseItems(text) {
+      return text.split("\n").map(s => s.trim()).filter(s => s !== "");
+    }
 
     /* ---------- Конфетти ---------- */
     const canvas = document.getElementById("confetti");
@@ -180,23 +231,18 @@
     resizeCanvas();
 
     function launchConfetti() {
-      // Не запускаем, если у человека включено «уменьшение движения»
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-
       const colors = ["#f582ae", "#ffd803", "#8bd3dd", "#7f5af0", "#2cb67d", "#ff8e3c"];
-      // Стреляем из места, где появился результат
       const rect = document.getElementById("result").getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
-
       for (let i = 0; i < 140; i++) {
         const angle = Math.random() * Math.PI * 2;
         const speed = 4 + Math.random() * 12;
         particles.push({
-          x: x,
-          y: y,
+          x: x, y: y,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 6,   // чуть подбрасываем вверх
+          vy: Math.sin(angle) * speed - 6,
           size: 6 + Math.random() * 6,
           color: colors[Math.floor(Math.random() * colors.length)],
           rotation: Math.random() * Math.PI,
@@ -213,18 +259,15 @@
 
     function drawConfetti() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       particles = particles.filter(p => p.life < p.maxLife && p.y < canvas.height + 20);
-
       for (const p of particles) {
         p.life++;
-        p.vy += 0.3;        // гравитация
-        p.vx *= 0.985;      // сопротивление воздуха
+        p.vy += 0.3;
+        p.vx *= 0.985;
         p.vy *= 0.985;
         p.x += p.vx;
         p.y += p.vy;
         p.rotation += p.spin;
-
         ctx.save();
         ctx.globalAlpha = Math.max(0, 1 - p.life / p.maxLife);
         ctx.translate(p.x, p.y);
@@ -233,7 +276,6 @@
         ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
         ctx.restore();
       }
-
       if (particles.length > 0) {
         requestAnimationFrame(drawConfetti);
       } else {
@@ -256,20 +298,50 @@
       updateThemeButton();
     }
 
-    /* ---------- Пресеты и язык ---------- */
+    /* ---------- Пресеты ---------- */
     function presetText(key, lang) {
+      const c = findCustom(key);
+      if (c) return c.items.join("\n");
       return presets[key].items[lang].join("\n");
     }
 
     function renderPresets() {
       const box = document.getElementById("presets");
       box.innerHTML = "";
+
       for (const key in presets) {
         const b = document.createElement("button");
         b.textContent = presets[key].label[currentLang];
         b.classList.toggle("active", key === currentPreset);
         b.onclick = () => selectPreset(key);
         box.appendChild(b);
+      }
+
+      for (const p of customPresets) {
+        const key = "c:" + p.id;
+        const b = document.createElement("button");
+        b.textContent = "⭐ " + p.name;
+        b.classList.toggle("active", key === currentPreset);
+        b.onclick = () => selectPreset(key);
+        box.appendChild(b);
+      }
+
+      const add = document.createElement("button");
+      add.className = "add";
+      add.textContent = texts[currentLang].newPreset;
+      add.onclick = () => openEditor(null);
+      box.appendChild(add);
+
+      // Кнопка «Редактировать» только для своих наборов
+      const actions = document.getElementById("preset-actions");
+      actions.innerHTML = "";
+      const c = findCustom(currentPreset);
+      if (c) {
+        const e = document.createElement("button");
+        e.className = "small-btn";
+        e.textContent = texts[currentLang].edit;
+        e.onclick = () => openEditor(c.id);
+        actions.appendChild(e);
       }
     }
 
@@ -287,6 +359,78 @@
       result.className = "";
     }
 
+    /* ---------- Редактор набора ---------- */
+    function applyEditorTexts() {
+      const t = texts[currentLang];
+      document.getElementById("ed-title").textContent = editingId ? t.edTitleEdit : t.edTitleNew;
+      document.getElementById("ed-name").placeholder = t.edName;
+      document.getElementById("ed-items").placeholder = t.edItems;
+      document.getElementById("ed-save").textContent = t.save;
+      document.getElementById("ed-cancel").textContent = t.cancel;
+      document.getElementById("ed-delete").textContent = t.del;
+    }
+
+    function openEditor(id) {
+      if (spinning) return;
+      editingId = id;
+      const nameBox = document.getElementById("ed-name");
+      const itemsBox = document.getElementById("ed-items");
+
+      if (id) {
+        const c = customPresets.find(p => p.id === id);
+        nameBox.value = c.name;
+        itemsBox.value = c.items.join("\n");
+      } else {
+        nameBox.value = "";
+        // Если человек уже вписал свой список, подставляем его в новый набор
+        itemsBox.value = currentPreset === "custom" ? document.getElementById("options").value.trim() : "";
+      }
+
+      document.getElementById("ed-delete").style.display = id ? "" : "none";
+      document.getElementById("ed-error").textContent = "";
+      applyEditorTexts();
+      document.getElementById("editor").hidden = false;
+      nameBox.focus();
+    }
+
+    function closeEditor() {
+      document.getElementById("editor").hidden = true;
+      editingId = null;
+    }
+
+    function saveEditor() {
+      const t = texts[currentLang];
+      const name = document.getElementById("ed-name").value.trim();
+      const items = parseItems(document.getElementById("ed-items").value);
+      const err = document.getElementById("ed-error");
+
+      if (!name) { err.textContent = t.needName; return; }
+      if (items.length === 0) { err.textContent = t.needItems; return; }
+
+      let id = editingId;
+      if (id) {
+        const c = customPresets.find(p => p.id === id);
+        c.name = name;
+        c.items = items;
+      } else {
+        id = Date.now().toString(36);
+        customPresets.push({ id: id, name: name, items: items });
+      }
+      saveCustom();
+      closeEditor();
+      selectPreset("c:" + id);
+    }
+
+    function deleteCustom() {
+      if (!editingId) return;
+      if (!confirm(texts[currentLang].confirmDel)) return;
+      customPresets = customPresets.filter(p => p.id !== editingId);
+      saveCustom();
+      closeEditor();
+      selectPreset("food");
+    }
+
+    /* ---------- Язык ---------- */
     function setLang(lang) {
       if (spinning) return;
       const box = document.getElementById("options");
@@ -302,6 +446,7 @@
       document.getElementById("hint").textContent = texts[lang].hint;
       document.getElementById("pick-btn").textContent = texts[lang].button;
       clearResult();
+      applyEditorTexts();
 
       document.getElementById("btn-ru").classList.toggle("active", lang === "ru");
       document.getElementById("btn-en").classList.toggle("active", lang === "en");
@@ -320,10 +465,7 @@
     function pick() {
       if (spinning) return;
 
-      const list = document.getElementById("options").value
-        .split("\n")
-        .map(s => s.trim())
-        .filter(s => s !== "");
+      const list = parseItems(document.getElementById("options").value);
       const result = document.getElementById("result");
       const btn = document.getElementById("pick-btn");
 
@@ -360,7 +502,7 @@
           result.textContent = "🎉 " + finalChoice;
           spinning = false;
           btn.disabled = false;
-          launchConfetti();   // 🎊
+          launchConfetti();
           return;
         }
         const exclude = (step === totalSteps - 1) ? finalChoice : last;
@@ -373,6 +515,7 @@
     }
 
     // Старт
+    loadCustom();
     document.getElementById("options").value = presetText(currentPreset, "ru");
     updateThemeButton();
     setLang("ru");
