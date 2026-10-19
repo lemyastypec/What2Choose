@@ -17,7 +17,6 @@
     })();
   </script>
   <style>
-    /* Цвета светлой и тёмной темы */
     :root {
       --bg: #fef6e4;
       --text: #222;
@@ -64,8 +63,12 @@
       100% { transform: scale(1); }
     }
 
+    /* Конфетти: слой поверх страницы, клики пропускает */
+    #confetti { position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                pointer-events: none; z-index: 50; }
+
     /* Верхний правый угол: язык и тема */
-    #top-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; }
+    #top-controls { position: fixed; top: 16px; right: 16px; display: flex; gap: 6px; z-index: 60; }
     #top-controls button { font-size: 0.95em; padding: 6px 12px; margin: 0;
                            background: var(--card); color: var(--card-text);
                            border: 2px solid var(--border); }
@@ -80,9 +83,17 @@
                       border: 2px solid var(--border); }
     #presets button:hover { background: var(--soft); }
     #presets button.active { background: var(--accent); color: white; }
+
+    /* Подпись в правом нижнем углу */
+    #credit { position: fixed; bottom: 12px; right: 16px; font-size: 0.85em;
+              color: var(--muted); z-index: 60; }
+    #credit a { color: inherit; text-decoration: none; font-weight: bold; }
+    #credit a:hover { color: var(--accent); }
   </style>
 </head>
 <body>
+  <canvas id="confetti"></canvas>
+
   <div id="top-controls">
     <button id="btn-ru" onclick="setLang('ru')">RU</button>
     <button id="btn-en" onclick="setLang('en')">EN</button>
@@ -96,6 +107,8 @@
   <br>
   <button id="pick-btn" onclick="pick()"></button>
   <div id="result"></div>
+
+  <div id="credit">created by <a href="https://github.com/lemyastypec" target="_blank" rel="noopener">lemyastypec</a></div>
 
   <script>
     const texts = {
@@ -153,10 +166,85 @@
     let currentPreset = "food";
     let spinning = false;
 
+    /* ---------- Конфетти ---------- */
+    const canvas = document.getElementById("confetti");
+    const ctx = canvas.getContext("2d");
+    let particles = [];
+    let confettiRunning = false;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    function launchConfetti() {
+      // Не запускаем, если у человека включено «уменьшение движения»
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const colors = ["#f582ae", "#ffd803", "#8bd3dd", "#7f5af0", "#2cb67d", "#ff8e3c"];
+      // Стреляем из места, где появился результат
+      const rect = document.getElementById("result").getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+
+      for (let i = 0; i < 140; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 4 + Math.random() * 12;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 6,   // чуть подбрасываем вверх
+          size: 6 + Math.random() * 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * Math.PI,
+          spin: (Math.random() - 0.5) * 0.4,
+          life: 0,
+          maxLife: 90 + Math.random() * 60
+        });
+      }
+      if (!confettiRunning) {
+        confettiRunning = true;
+        requestAnimationFrame(drawConfetti);
+      }
+    }
+
+    function drawConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      particles = particles.filter(p => p.life < p.maxLife && p.y < canvas.height + 20);
+
+      for (const p of particles) {
+        p.life++;
+        p.vy += 0.3;        // гравитация
+        p.vx *= 0.985;      // сопротивление воздуха
+        p.vy *= 0.985;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.spin;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 1 - p.life / p.maxLife);
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+        ctx.restore();
+      }
+
+      if (particles.length > 0) {
+        requestAnimationFrame(drawConfetti);
+      } else {
+        confettiRunning = false;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
     /* ---------- Тема ---------- */
     function updateThemeButton() {
       const theme = document.documentElement.getAttribute("data-theme");
-      // В тёмной теме показываем солнце (переключить на светлую), в светлой луну
       document.getElementById("btn-theme").textContent = theme === "dark" ? "☀️" : "🌙";
     }
 
@@ -205,7 +293,6 @@
       const untouched = box.value.trim() === presetText(currentPreset, currentLang).trim();
 
       currentLang = lang;
-      // Если список не правили вручную, показываем тот же пресет на новом языке
       if (untouched) {
         box.value = presetText(currentPreset, lang);
       }
@@ -246,13 +333,12 @@
         return;
       }
 
-      // Итоговый результат выбираем сразу, а анимация только красиво его показывает
       const finalChoice = list[Math.floor(Math.random() * list.length)];
 
-      // Если вариант один, крутить нечего
       if (list.length === 1) {
         result.className = "done";
         result.textContent = "🎉 " + finalChoice;
+        launchConfetti();
         return;
       }
 
@@ -260,33 +346,33 @@
       btn.disabled = true;
       result.className = "spinning";
 
-      const totalSteps = 16;   // сколько раз мелькнёт текст
+      const totalSteps = 16;
       let step = 0;
-      let delay = 60;          // стартовая пауза в миллисекундах
+      let delay = 60;
       let last = "";
 
       function tick() {
         step++;
         if (step >= totalSteps) {
           result.className = "";
-          void result.offsetWidth;   // перезапуск CSS-анимации
+          void result.offsetWidth;
           result.className = "done";
           result.textContent = "🎉 " + finalChoice;
           spinning = false;
           btn.disabled = false;
+          launchConfetti();   // 🎊
           return;
         }
-        // Предпоследний показ не должен совпадать с итогом, так эффектнее
         const exclude = (step === totalSteps - 1) ? finalChoice : last;
         last = randomItem(list, exclude);
         result.textContent = last;
-        delay *= 1.12;             // с каждым шагом замедляемся
+        delay *= 1.12;
         setTimeout(tick, delay);
       }
       tick();
     }
 
-    // Старт: русский язык, пресет «Что заказать», сохранённая или системная тема
+    // Старт
     document.getElementById("options").value = presetText(currentPreset, "ru");
     updateThemeButton();
     setLang("ru");
